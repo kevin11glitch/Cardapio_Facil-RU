@@ -1,21 +1,26 @@
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
-import locale
+import os
 
-dia_numero = datetime.now().weekday()
+TOKEN = os.getenv("TELEGRAM_TOKEN", "8638078098:AAFopqfkS-2_qW7qpfOH1forik73U1W-TdA")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "-5067991756")
 
-dias_semana = {
-    0: "Segunda-feira",
-    1: "Terça-feira",
-    2: "Quarta-feira",
-    3: "Quinta-feira",
-    4: "Sexta-feira",
-    5: "Sábado",
-    6: "Domingo"
-}
+def enviar_telegram(texto_cardapio):
+    url_api = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": texto_cardapio,
+        "parse_mode": "Markdown"
+    }
 
-dia_hoje = dias_semana.get(dia_numero)
+    try:
+        res = requests.post(url_api, data=payload)
+        if res.status_code == 200:
+            print("Cardápio enviado com sucesso para o Telegram!")
+        else:
+            print(f"Erro no Telegram: {res.text}")
+    except Exception as e:
+        print(f"Falha ao conectar com o Telegram: {e}")
 
 def pegar_cardapio():
     url = "https://www.ufc.br/restaurante/cardapio/3-restaurante-universitario-de-russas"
@@ -32,7 +37,7 @@ def pegar_cardapio():
             dia_tag = soup.find(class_='atual')
             if dia_tag:
                 texto_dia = dia_tag.get_text(strip=True)
-                print(f"DEBUG: Dia atual detectado no site: {texto_dia}")
+                print(f"DEBUG: Dia atual detectado: {texto_dia}")
             else:
                 return "Cardápio não encontrado (Erro na tag de data)."
 
@@ -44,8 +49,7 @@ def pegar_cardapio():
 
                 mensagem += f"\n*=== {tipo} - {texto_dia} ===*\n"
 
-                linhas = tabela.find_all('tr')
-                for linha in linhas:
+                for linha in tabela.find_all('tr'):
                     colunas = linha.find_all('td')
                     if len(colunas) >= 2:
                         categoria = colunas[0].get_text(strip=True)
@@ -63,8 +67,14 @@ def pegar_cardapio():
             
             return mensagem if mensagem else "Cardápio vazio ou não publicado."
     except Exception as e:
-        return f"Erro: {e}"
+        return f"Erro na raspagem: {e}"
 
 if __name__ == "__main__":
+    print("Iniciando bot de cardápio...")
     resultado = pegar_cardapio()
-    print(resultado)
+    
+    if "===" in resultado:
+        print("Cardápio extraído. Enviando para o Telegram...")
+        enviar_telegram(resultado)
+    else:
+        print(f"Aviso: {resultado}")
