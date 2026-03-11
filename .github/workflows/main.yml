@@ -2,7 +2,7 @@ name: Bot RU Russas
 
 on:
   schedule:
-    - cron: '20 11 * * 1-5' 
+    - cron: '00 11 * * 1-5' 
   workflow_dispatch: 
 
 jobs:
